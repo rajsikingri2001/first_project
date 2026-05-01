@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Management System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #060810;
+      --surface:   #0d1020;
+      --card:      #131729;
+      --border:    #1e2340;
+      --accent:    #4f8ef7;
+      --green:     #34d399;
+      --yellow:    #fbbf24;
+      --red:       #f87171;
+      --purple:    #a78bfa;
+      --pink:      #f472b6;
+      --text:      #e2e8f8;
+      --muted:     #5a6285;
+      --radius:    14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 220px; height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 28px 16px; z-index: 100;
+    }
+    .logo { font-size: 1rem; font-weight: 800; color: var(--accent); margin-bottom: 36px; padding: 0 8px; line-height: 1.3; }
+    .logo span { color: var(--text); font-weight: 400; font-size: 0.7rem; display: block; margin-top: 2px; opacity: 0.5; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 10px; cursor: pointer;
+      color: var(--muted); font-size: 0.875rem; font-weight: 600;
+      transition: all 0.2s; margin-bottom: 4px;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: var(--card); color: var(--text); }
+    .nav-item.active { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+
+    /* MAIN */
+    .main { margin-left: 220px; padding: 32px 36px; min-height: 100vh; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+    /* PAGE HEADER */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
+    .page-header p { color: var(--muted); font-size: 0.875rem; margin-top: 4px; }
+
+    /* STAT CARDS */
+    .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .stat-card.blue::before   { background: var(--accent); }
+    .stat-card.green::before  { background: var(--green); }
+    .stat-card.yellow::before { background: var(--yellow); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-label { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-value { font-size: 2.2rem; font-weight: 800; margin: 6px 0 2px; font-family: 'JetBrains Mono', monospace; }
+    .stat-card.blue   .stat-value { color: var(--accent); }
+    .stat-card.green  .stat-value { color: var(--green); }
+    .stat-card.yellow .stat-value { color: var(--yellow); }
+    .stat-card.purple .stat-value { color: var(--purple); }
+    .stat-sub { font-size: 0.75rem; color: var(--muted); }
+
+    /* LAYOUT */
+    .two-col  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .full-col { margin-bottom: 24px; }
+
+    /* CARD */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .card-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .card-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+    /* FORM */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 11px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Sora', sans-serif; font-size: 0.875rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,142,247,0.12); }
+    select option { background: var(--card); }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 11px 20px; border-radius: 8px; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 0.875rem; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+    .btn-primary:hover { background: #3a7bf5; transform: translateY(-1px); }
+    .btn-danger { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 6px 14px; font-size: 0.78rem; }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+    .btn-edit { background: rgba(79,142,247,0.12); color: var(--accent); border: 1px solid rgba(79,142,247,0.25); padding: 6px 14px; font-size: 0.78rem; }
+    .btn-edit:hover { background: var(--accent); color: #fff; }
+    .btn-cancel { background: var(--surface); color: var(--muted); border: 1px solid var(--border); flex: 1; justify-content: center; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    th { padding: 10px 14px; text-align: left; font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    td { padding: 13px 14px; border-bottom: 1px solid rgba(30,35,64,0.6); }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody tr:last-child td { border-bottom: none; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; margin-right: 10px; vertical-align: middle; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+    .b-cs { background: rgba(79,142,247,0.15); color: #4f8ef7; }
+    .b-it { background: rgba(52,211,153,0.15); color: #34d399; }
+    .b-ec { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .b-me { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .b-ce { background: rgba(244,114,182,0.15); color: #f472b6; }
+    .b-default { background: rgba(90,98,133,0.2); color: #8892b0; }
+
+    /* SEARCH */
+    .search-bar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+    .search-bar input { max-width: 300px; }
+    .record-count { margin-left: auto; font-size: 0.78rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* BAR CHART */
+    .bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 140px; padding: 0 4px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+    .bar { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; }
+    .bar-label { font-size: 0.65rem; color: var(--muted); font-weight: 600; text-align: center; }
+    .bar-val { font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+    /* DONUT */
+    .donut-wrap { display: flex; align-items: center; gap: 24px; }
+    .donut-legend { display: flex; flex-direction: column; gap: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .legend-name { color: var(--muted); }
+    .legend-val { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.78rem; }
+
+    /* EMPTY */
+    .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty h3 { font-size: 1rem; color: var(--text); margin-bottom: 6px; }
+    .empty p { font-size: 0.82rem; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 400px; max-width: 90vw; animation: fadeIn 0.2s ease; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 28px; right: 28px; padding: 13px 20px; border-radius: 10px; font-size: 0.875rem; font-weight: 600; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 9999; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: rgba(52,211,153,0.2); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+    #toast.error   { background: rgba(248,113,113,0.2); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; padding: 20px 8px; }
+      .logo, .nav-item span { display: none; }
+      .main { margin-left: 60px; padding: 20px 16px; }
+      .stat-row { grid-template-columns: repeat(2,1fr); }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">📚 SMS <span>Student Management</span></div>
+  <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">🏠</span><span>Dashboard</span></button>
+  <button class="nav-item" onclick="showPage('students',this)"><span class="icon">👥</span><span>Students</span></button>
+  <button class="nav-item" onclick="showPage('add',this)"><span class="icon">➕</span><span>Add Student</span></button>
+</nav>
+
+<main class="main">
+
+  <!-- PAGE 1: DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h1>Dashboard 📊</h1>
+      <p>Overview of all student records — data is saved automatically</p>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card blue">  <div class="stat-label">Total Students</div><div class="stat-value" id="d-total">0</div><div class="stat-sub">All registered</div></div>
+      <div class="stat-card green"> <div class="stat-label">Average Age</div>   <div class="stat-value" id="d-avg">—</div>  <div class="stat-sub">Years old</div></div>
+      <div class="stat-card yellow"><div class="stat-label">Courses</div>        <div class="stat-value" id="d-courses">0</div><div class="stat-sub">Unique courses</div></div>
+      <div class="stat-card purple"><div class="stat-label">Youngest</div>       <div class="stat-value" id="d-young">—</div> <div class="stat-sub">Years old</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><div class="dot"></div>Students per Course</div>
+        <div class="bar-chart" id="barChart"><div class="empty" style="width:100%"><div class="empty-icon">📊</div><p>Add students to see chart</p></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--purple)"></div>Course Distribution</div>
+        <div class="donut-wrap" id="donutWrap"><div class="empty" style="width:100%"><div class="empty-icon">🍩</div><p>Add students to see distribution</p></div></div>
+      </div>
+    </div>
+    <div class="full-col">
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--green)"></div>Recently Added</div>
+        <div id="recentList"><div class="empty"><div class="empty-icon">👤</div><h3>No students yet</h3><p>Click "Add Student" to get started</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: STUDENTS LIST -->
+  <div class="page" id="page-students">
+    <div class="page-header">
+      <h1>All Students 👥</h1>
+      <p>Search, edit and delete student records</p>
+    </div>
+    <div class="card">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="🔍  Search by name or course..." oninput="renderTable()"/>
+        <span class="record-count" id="recordCount">0 records</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Student</th><th>Age</th><th>Course</th><th>Added On</th><th>Actions</th></tr></thead>
+          <tbody id="studentBody"></tbody>
+        </table>
+        <div id="tableEmpty" class="empty" style="display:none">
+          <div class="empty-icon">📭</div><h3>No students found</h3><p>Try a different search or add a new student</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: ADD STUDENT -->
+  <div class="page" id="page-add">
+    <div class="page-header">
+      <h1>Add Student ➕</h1>
+      <p>Fill in the details below to register a new student</p>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><div class="dot"></div>Student Details</div>
+        <div class="form-group"><label for="name">Full Name</label><input type="text" id="name" placeholder="e.g. Riya Sharma"/></div>
+        <div class="form-group"><label for="age">Age</label><input type="number" id="age" placeholder="e.g. 20" min="16" max="35"/></div>
+        <div class="form-group">
+          <label for="course">Course</label>
+          <select id="course">
+            <option value="">-- Select Course --</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Electronics">Electronics &amp; Communication</option>
+            <option value="Mechanical">Mechanical Engineering</option>
+            <option value="Civil">Civil Engineering</option>
+          </select>
+        </div>
+        <div class="form-group"><label for="email">Email (optional)</label><input type="email" id="email" placeholder="e.g. riya@college.edu"/></div>
+        <button class="btn btn-primary" onclick="addStudent()">➕ Add Student</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="dot" style="background:var(--green)"></div>What's New in This Version</div>
+        <div style="color:var(--muted);font-size:0.875rem;line-height:2">
+          <p>💾 <strong style="color:var(--text)">localStorage Saving</strong><br>Data stays even after browser closes or refreshes.</p><br>
+          <p>📊 <strong style="color:var(--text)">Live Dashboard</strong><br>Bar chart + donut chart update automatically.</p><br>
+          <p>✏️ <strong style="color:var(--text)">Edit Students</strong><br>Click Edit on any student to update their details.</p><br>
+          <p>🔍 <strong style="color:var(--text)">Live Search</strong><br>Instantly filter students as you type.</p><br>
+          <p>📅 <strong style="color:var(--text)">Date Tracking</strong><br>Each student record shows when they were added.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Edit Student</div>
+    <input type="hidden" id="editId"/>
+    <div class="form-group"><label>Full Name</label><input type="text" id="editName"/></div>
+    <div class="form-group"><label>Age</label><input type="number" id="editAge" min="16" max="35"/></div>
+    <div class="form-group">
+      <label>Course</label>
+      <select id="editCourse">
+        <option value="">-- Select Course --</option>
+        <option value="Computer Science">Computer Science</option>
+        <option value="Information Technology">Information Technology</option>
+        <option value="Electronics">Electronics &amp; Communication</option>
+        <option value="Mechanical">Mechanical Engineering</option>
+        <option value="Civil">Civil Engineering</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Email (optional)</label><input type="email" id="editEmail"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  JAVASCRIPT — Student Management System
+//  Upgraded with: localStorage, Dashboard, Edit, Search
+// ══════════════════════════════════════════════════════
+
+// 1. DATA STORAGE
+// ──────────────────────────────────────────────────────
+// studentList[] holds all student objects in memory
+// We also save it to localStorage so data is NOT lost on refresh
+var studentList = [];
+var nextId = 1;
+
+// loadData — reads saved data from browser's localStorage
+function loadData() {
+  var saved = localStorage.getItem('sms_students'); // get saved string
+  if (saved) {
+    studentList = JSON.parse(saved); // convert string → array
+    if (studentList.length > 0) {
+      // make sure nextId is always higher than existing IDs
+      nextId = Math.max.apply(null, studentList.map(function(s){ return s.id; })) + 1;
+    }
+  }
+}
+
+// saveData — writes current array to localStorage
+function saveData() {
+  localStorage.setItem('sms_students', JSON.stringify(studentList)); // array → string
+}
+
+// 2. ADD STUDENT
+// ──────────────────────────────────────────────────────
+function addStudent() {
+  var name   = document.getElementById('name').value.trim();
+  var age    = document.getElementById('age').value.trim();
+  var course = document.getElementById('course').value;
+  var email  = document.getElementById('email').value.trim();
+
+  if (!name || !age || !course) { showToast('⚠ Fill in Name, Age and Course', 'error'); return; }
+  var ageNum = parseInt(age);
+  if (isNaN(ageNum) || ageNum < 16 || ageNum > 35) { showToast('⚠ Age must be 16–35', 'error'); return; }
+
+  // Create student object — like new Student() in Java
+  var s = {
+    id:      nextId++,
+    name:    name,
+    age:     ageNum,
+    course:  course,
+    email:   email || '—',
+    addedOn: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+  };
+  studentList.push(s); // add to array — like ArrayList.add()
+  saveData();          // save to localStorage
+  refreshAll();        // update UI
+
+  // Clear form
+  ['name','age','course','email'].forEach(function(id){ document.getElementById(id).value = ''; });
+  showToast('✅ Student saved to browser storage!', 'success');
+  showPage('students', document.querySelectorAll('.nav-item')[1]);
+}
+
+// 3. DELETE STUDENT
+// ──────────────────────────────────────────────────────
+function deleteStudent(id) {
+  // filter() removes student with matching id — like ArrayList.remove()
+  studentList = studentList.filter(function(s){ return s.id !== id; });
+  saveData();
+  refreshAll();
+  showToast('🗑 Student deleted', 'success');
+}
+
+// 4. EDIT STUDENT — open modal
+// ──────────────────────────────────────────────────────
+function openEdit(id) {
+  var s = studentList.find(function(x){ return x.id === id; });
+  if (!s) return;
+  document.getElementById('editId').value     = s.id;
+  document.getElementById('editName').value   = s.name;
+  document.getElementById('editAge').value    = s.age;
+  document.getElementById('editCourse').value = s.course;
+  document.getElementById('editEmail').value  = s.email === '—' ? '' : s.email;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeModal() { document.getElementById('editModal').classList.remove('open'); }
+function saveEdit() {
+  var id = parseInt(document.getElementById('editId').value);
+  var name = document.getElementById('editName').value.trim();
+  var age  = parseInt(document.getElementById('editAge').value);
+  var course = document.getElementById('editCourse').value;
+  var email  = document.getElementById('editEmail').value.trim();
+  if (!name || !age || !course) { showToast('⚠ All fields required', 'error'); return; }
+  if (age < 16 || age > 35) { showToast('⚠ Age must be 16–35', 'error'); return; }
+  for (var i = 0; i < studentList.length; i++) {
+    if (studentList[i].id === id) {
+      studentList[i].name = name; studentList[i].age = age;
+      studentList[i].course = course; studentList[i].email = email || '—';
+      break;
+    }
+  }
+  saveData(); refreshAll(); closeModal();
+  showToast('✅ Student updated!', 'success');
+}
+
+// 5. RENDER STUDENT TABLE
+// ──────────────────────────────────────────────────────
+function renderTable() {
+  var tbody    = document.getElementById('studentBody');
+  var emptyDiv = document.getElementById('tableEmpty');
+  var search   = (document.getElementById('searchInput').value || '').toLowerCase();
+
+  // filter by search term
+  var list = studentList.filter(function(s) {
+    return s.name.toLowerCase().includes(search) || s.course.toLowerCase().includes(search);
+  });
+
+  document.getElementById('recordCount').textContent = list.length + ' record' + (list.length !== 1 ? 's' : '');
+
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    emptyDiv.style.display = 'block';
+    return;
+  }
+  emptyDiv.style.display = 'none';
+  tbody.innerHTML = '';
+
+  var palette = ['#4f8ef7','#34d399','#a78bfa','#fbbf24','#f472b6','#f87171'];
+  list.forEach(function(s, i) {
+    var col = palette[s.name.charCodeAt(0) % palette.length];
+    var tr  = document.createElement('tr');
+    tr.innerHTML =
+      '<td style="color:var(--muted);font-family:JetBrains Mono,monospace;font-size:0.75rem">' + (i+1) + '</td>' +
+      '<td><span class="avatar" style="background:' + col + '22;color:' + col + '">' + s.name[0].toUpperCase() + '</span>' +
+        '<strong>' + esc(s.name) + '</strong>' +
+        (s.email !== '—' ? '<br><span style="font-size:0.7rem;color:var(--muted)">' + esc(s.email) + '</span>' : '') +
+      '</td>' +
+      '<td style="font-family:JetBrains Mono,monospace">' + s.age + '</td>' +
+      '<td><span class="badge ' + bc(s.course) + '">' + s.course + '</span></td>' +
+      '<td style="font-size:0.78rem;color:var(--muted)">' + (s.addedOn || '—') + '</td>' +
+      '<td>' +
+        '<button class="btn btn-edit" onclick="openEdit(' + s.id + ')">✏️ Edit</button> ' +
+        '<button class="btn btn-danger" onclick="deleteStudent(' + s.id + ')">🗑 Del</button>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// 6. UPDATE DASHBOARD
+// ──────────────────────────────────────────────────────
+function updateDashboard() {
+  var total = studentList.length;
+  document.getElementById('d-total').textContent = total;
+
+  if (total === 0) {
+    document.getElementById('d-avg').textContent    = '—';
+    document.getElementById('d-young').textContent  = '—';
+    document.getElementById('d-courses').textContent = '0';
+  } else {
+    var sum = 0, mn = 999, courses = {};
+    studentList.forEach(function(s) {
+      sum += s.age;
+      if (s.age < mn) mn = s.age;
+      courses[s.course] = (courses[s.course] || 0) + 1;
+    });
+    document.getElementById('d-avg').textContent     = Math.round(sum / total);
+    document.getElementById('d-young').textContent   = mn;
+    document.getElementById('d-courses').textContent = Object.keys(courses).length;
+
+    // BAR CHART
+    var barChart = document.getElementById('barChart');
+    var maxV = Math.max.apply(null, Object.values(courses));
+    var cols = ['#4f8ef7','#34d399','#a78bfa','#fbbf24','#f472b6'];
+    barChart.innerHTML = '';
+    Object.keys(courses).forEach(function(cn, i) {
+      var v = courses[cn];
+      var h = Math.max(8, Math.round((v / maxV) * 120));
+      var c = cols[i % cols.length];
+      var g = document.createElement('div');
+      g.className = 'bar-group';
+      g.innerHTML =
+        '<span class="bar-val" style="color:' + c + '">' + v + '</span>' +
+        '<div class="bar" style="height:' + h + 'px;background:' + c + '44;border:1px solid ' + c + '"></div>' +
+        '<span class="bar-label">' + cn.split(' ')[0] + '</span>';
+      barChart.appendChild(g);
+    });
+
+    // DONUT CHART
+    var donutWrap = document.getElementById('donutWrap');
+    var circ = 2 * Math.PI * 40, offset = 0;
+    var segs = '';
+    Object.keys(courses).forEach(function(cn, i) {
+      var dash = (courses[cn] / total) * circ;
+      var rot  = (offset / circ) * 360 - 90;
+      segs += '<circle cx="55" cy="55" r="40" fill="none" stroke="' + cols[i % cols.length] +
+        '" stroke-width="18" stroke-dasharray="' + dash.toFixed(2) + ' ' + (circ - dash).toFixed(2) +
+        '" transform="rotate(' + rot.toFixed(1) + ' 55 55)"/>';
+      offset += dash;
+    });
+    var legend = '<div class="donut-legend">';
+    Object.keys(courses).forEach(function(cn, i) {
+      legend += '<div class="legend-item"><div class="legend-dot" style="background:' + cols[i % cols.length] + '"></div>' +
+        '<span class="legend-name">' + cn.split(' ')[0] + '</span>' +
+        '<span class="legend-val" style="color:' + cols[i % cols.length] + '">' + Math.round((courses[cn]/total)*100) + '%</span></div>';
+    });
+    legend += '</div>';
+    donutWrap.innerHTML =
+      '<svg width="110" height="110" viewBox="0 0 110 110">' +
+      '<circle cx="55" cy="55" r="40" fill="none" stroke="#1e2340" stroke-width="18"/>' +
+      segs +
+      '<text x="55" y="52" text-anchor="middle" fill="#e2e8f8" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace">' + total + '</text>' +
+      '<text x="55" y="65" text-anchor="middle" fill="#5a6285" font-size="7" font-family="Sora,sans-serif">STUDENTS</text>' +
+      '</svg>' + legend;
+
+    // RECENT STUDENTS
+    var recent = studentList.slice(-5).reverse();
+    var html = '<table><thead><tr><th>Name</th><th>Age</th><th>Course</th><th>Added On</th></tr></thead><tbody>';
+    recent.forEach(function(s) {
+      html += '<tr><td><strong>' + esc(s.name) + '</strong></td><td>' + s.age + '</td>' +
+        '<td><span class="badge ' + bc(s.course) + '">' + s.course + '</span></td>' +
+        '<td style="font-size:0.78rem;color:var(--muted)">' + (s.addedOn || '—') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('recentList').innerHTML = html;
+
+  }
+
+  if (total === 0) {
+    document.getElementById('barChart').innerHTML   = '<div class="empty" style="width:100%"><div class="empty-icon">📊</div><p>Add students to see chart</p></div>';
+    document.getElementById('donutWrap').innerHTML  = '<div class="empty" style="width:100%"><div class="empty-icon">🍩</div><p>Add students to see distribution</p></div>';
+    document.getElementById('recentList').innerHTML = '<div class="empty"><div class="empty-icon">👤</div><h3>No students yet</h3><p>Click "Add Student" to get started</p></div>';
+  }
+}
+
+// 7. HELPERS
+// ──────────────────────────────────────────────────────
+function refreshAll() { renderTable(); updateDashboard(); }
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type || 'success');
+  setTimeout(function(){ t.className = ''; }, 3000);
+}
+
+function esc(text) {
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(String(text)));
+  return d.innerHTML;
+}
+
+function bc(course) {
+  if (!course) return 'b-default';
+  if (course.includes('Computer'))    return 'b-cs';
+  if (course.includes('Information')) return 'b-it';
+  if (course.includes('Electronics')) return 'b-ec';
+  if (course.includes('Mechanical'))  return 'b-me';
+  if (course.includes('Civil'))       return 'b-ce';
+  return 'b-default';
+}
+
+document.getElementById('editModal').addEventListener('click', function(e){ if (e.target===this) closeModal(); });
+
+// 8. INIT — runs when page loads
+// ──────────────────────────────────────────────────────
+loadData();   // load saved data from localStorage
+refreshAll(); // draw UI
+</script>
+</body>
+</html>
